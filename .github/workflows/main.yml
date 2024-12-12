@@ -18,6 +18,13 @@ jobs:
       with:
         ref: 'refs/heads/master'
 
+    # Set up JDK 17 (for consistency with your pom.xml)
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'  # Make sure this matches the Java version in your pom.xml
+        distribution: 'temurin'
+
     # Install Maven if needed
     - name: Install Maven
       run: |
@@ -27,13 +34,6 @@ jobs:
     # Verify Maven installation
     - name: Verify Maven installation
       run: mvn -v
-
-    # Set up JDK 11
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
 
     # Build with Maven
     - name: Build with Maven
@@ -89,7 +89,7 @@ jobs:
           echo "WAR file not found in target directory. Exiting..."
           exit 1
         fi
-        scp target/*.war ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/home/ubuntu/target/  # Upload WAR file to EC2 target directory
+        scp target/*.war ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/home/ubuntu/target/
 
     - name: Copy WAR file to Tomcat Webapps Directory
       run: |
