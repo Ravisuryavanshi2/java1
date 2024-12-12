@@ -1,75 +1,3 @@
-name: Java CI/CD Workflow
-
-on:
-  push:
-    branches:
-      - master  # Trigger on pushes to the 'master' branch of the current repository
-  pull_request:
-    branches:
-      - master  # Trigger on pull requests to the 'master' branch of the current repository
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    # Step 1: Checkout the current repository (main repository) from the 'master' branch
-    - name: Checkout Current Repository (master branch)
-      uses: actions/checkout@v3
-      with:
-        ref: 'refs/heads/master'  # Ensure we are working with the 'master' branch
-
-    # Step 2: Set up JDK 11 using Temurin (the successor to AdoptOpenJDK)
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'  # Use Temurin for JDK 11
-        check-latest: false
-
-    # Step 3: Build the current repository (main repository)
-    - name: Build with Maven
-      run: mvn clean install
-
-    # Step 4: Run Tests for the current repository
-    - name: Run Tests
-      run: mvn test
-
-    # Step 5: Upload Artifacts (JAR file) from the current repository
-    - name: Upload Artifacts (JAR file)
-      uses: actions/upload-artifact@v3
-      with:
-        name: my-java-artifact
-        path: target/*.jar  # Adjust path if needed
-
-    # Step 6: Checkout the external repository (java1) from the 'master' branch
-    - name: Checkout External Repository (java1) from 'master' branch
-      uses: actions/checkout@v3
-      with:
-        repository: 'Ravisuryavanshi2/java1'  # External repository URL
-        ref: 'refs/heads/master'  # Checkout the 'master' branch from the external repository
-        token: ${{ secrets.GITHUB_TOKEN }}  # Authenticate using the GITHUB_TOKEN
-        path: repo-java1  # Checkout code to the 'repo-java1' directory
-
-    # Step 7: Build the external repository (java1)
-    - name: Build External Repository (java1)
-      run: |
-        cd repo-java1  # Navigate to the 'repo-java1' directory
-        mvn clean install  # Build the external repository with Maven
-
-    # Step 8: Run Tests for the external repository
-    - name: Run Tests for External Repository (java1)
-      run: |
-        cd repo-java1  # Navigate to the 'repo-java1' directory
-        mvn test  # Run tests for the external repository
-
-    # Step 9: Upload Artifacts (JAR file) from the external repository
-    - name: Upload External Repository Artifacts (JAR file)
-      uses: actions/upload-artifact@v3
-      with:
-        name: java1-artifact
-        path: repo-java1/target/*.jar  # Adjust path based on the external repository output
-
   deploy:
     runs-on: ubuntu-latest
     needs: build  # This means deploy will only run after the build job finishes
@@ -94,6 +22,8 @@ jobs:
     - name: Test SSH Connection
       run: |
         echo "Testing SSH connection..."
+        echo "DEPLOY_USER: ${{ secrets.DEPLOY_USER }}"  # Debug: Ensure DEPLOY_USER is set correctly
+        echo "SERVER_IP: ${{ secrets.SERVER_IP }}"      # Debug: Ensure SERVER_IP is set correctly
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} 'echo SSH connection successful!' || (echo "SSH connection failed" && exit 1)
 
     # Step 4: Deploy the current repository
