@@ -27,13 +27,10 @@ jobs:
     - name: Build with Maven
       run: mvn clean install
 
-    - name: Run Tests
-      run: mvn test
-
     - name: Check build output (debug step)
       run: |
-        echo "Checking build output in target/ directory"
-        ls -al target/
+        echo "Checking contents of target directory"
+        ls -al target/  # List contents of the target directory
         if [ ! -f target/*.war ]; then
           echo "WAR file not found in target directory. Exiting..."
           exit 1
@@ -66,24 +63,28 @@ jobs:
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} 'echo SSH connection successful!' || (echo "SSH connection failed" && exit 1)
 
-    - name: Install Tomcat on EC2
+    - name: Install Tomcat on EC2 (if not already installed)
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           # Install necessary dependencies
           sudo apt update -y
           sudo apt install -y openjdk-11-jdk wget unzip
 
-          # Download and install Tomcat
-          cd /opt
-          sudo wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.58/bin/apache-tomcat-9.0.58.tar.gz
-          sudo tar xvf apache-tomcat-9.0.58.tar.gz
-          sudo ln -s apache-tomcat-9.0.58 tomcat
+          # Download and install Tomcat if not already installed
+          if [ ! -d "/opt/tomcat" ]; then
+            cd /opt
+            sudo wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.58/bin/apache-tomcat-9.0.58.tar.gz
+            sudo tar xvf apache-tomcat-9.0.58.tar.gz
+            sudo ln -s apache-tomcat-9.0.58 tomcat
 
-          # Start Tomcat
-          sudo /opt/tomcat/bin/startup.sh
+            # Start Tomcat
+            sudo /opt/tomcat/bin/startup.sh
 
-          # Open necessary ports (HTTP 8080)
-          sudo ufw allow 8080
+            # Open necessary ports (HTTP 8080)
+            sudo ufw allow 8080
+          else
+            echo "Tomcat is already installed."
+          fi
         EOF
 
     - name: Deploy to Tomcat on EC2
@@ -93,8 +94,19 @@ jobs:
           echo "WAR file not found in target directory. Exiting..."
           exit 1
         fi
-        scp target/*.war ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/opt/tomcat/webapps/  # Adjust for WAR file
+        scp target/*.war ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/home/ubuntu/target/  # Upload WAR file to EC2 target directory
+
+    - name: Copy WAR file to Tomcat Webapps Directory
+      run: |
+        echo "Copying WAR file to Tomcat webapps directory on EC2..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          sudo cp /home/ubuntu/target/*.war /opt/tomcat/webapps/
+        EOF
 
     - name: Restart Tomcat on EC2
       run: |
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} 'sudo /opt/tomcat/bin/shutdown.sh && sudo /opt/tomcat/bin/startup.sh'
+        echo "Restarting Tomcat on EC2..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          sudo /opt/tomcat/bin/shutdown.sh
+          sudo /opt/tomcat/bin/startup.sh
+        EOF
