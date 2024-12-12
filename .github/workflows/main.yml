@@ -90,15 +90,20 @@ jobs:
         # Ensure the server's SSH key is added to known_hosts
         ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+    # Step 3: Debug SSH Connection (Check if we can connect to the server)
+    - name: Test SSH Connection
+      run: |
+        echo "Testing SSH connection..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} 'echo SSH connection successful!' || (echo "SSH connection failed" && exit 1)
 
-    # Step 3: Deploy the current repository
+    # Step 4: Deploy the current repository
     - name: Deploy Current Repository
       run: |
         echo "Deploying current repository to the server..."
-        scp target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/path/to/deployment/dir  # Adjust deployment path
+        scp -i ~/.ssh/id_rsa target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/path/to/deployment/dir  # Adjust deployment path
 
-    # Step 4: Deploy the external repository (java1) artifact
+    # Step 5: Deploy the external repository (java1) artifact
     - name: Deploy External Repository Artifact (java1)
       run: |
         echo "Deploying external repository (java1) artifact..."
-        scp repo-java1/target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/path/to/deployment/dir  # Adjust deployment path
+        scp -i ~/.ssh/id_rsa repo-java1/target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/path/to/deployment/dir  # Adjust deployment path
