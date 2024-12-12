@@ -3,14 +3,14 @@ name: Java CI/CD Workflow
 on:
   push:
     branches:
-      - master  # Trigger on pushes to the 'master' branch of the current repository
+      - master
   pull_request:
     branches:
-      - master  # Trigger on pull requests to the 'master' branch of the current repository
+      - master
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - name: Checkout Current Repository (master branch)
@@ -27,14 +27,15 @@ jobs:
     - name: Build with Maven
       run: mvn clean install
 
-    # Debugging step to check if WAR file is created
-    - name: Check contents of target directory
+    # Debugging step to check if the WAR file exists in the target directory
+    - name: List contents of target directory
       run: |
         echo "Listing contents of the target directory"
         ls -al target/
 
     - name: Check WAR file existence
       run: |
+        echo "Checking for WAR file in target directory"
         if [ ! -f target/*.war ]; then
           echo "WAR file not found in target directory. Exiting..."
           exit 1
@@ -44,10 +45,10 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: my-java-artifact
-        path: target/*.war  # Use *.war for WAR file instead of *.jar
+        path: target/*.war
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
 
     steps:
