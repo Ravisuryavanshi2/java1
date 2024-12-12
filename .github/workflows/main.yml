@@ -81,23 +81,16 @@ jobs:
       with:
         ref: 'refs/heads/master'  # Ensure we are working with the 'master' branch
 
-    # Step 2: Deploy the current repository (main repo)
+    # Step 2: Set up SSH for secure deployment
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+    # Step 3: Deploy the current repository
     - name: Deploy Current Repository
       run: |
         echo "Deploying current repository to the server..."
-        scp target/*.jar user@server:/path/to/deployment/directory/  # Example deployment command
-
-    # Step 3: Checkout the external repository (java1) from the 'master' branch
-    - name: Checkout External Repository (java1) from 'master' branch
-      uses: actions/checkout@v3
-      with:
-        repository: 'Ravisuryavanshi2/java1'  # External repository URL
-        ref: 'refs/heads/master'  # Checkout the 'master' branch from the external repository
-        token: ${{ secrets.GITHUB_TOKEN }}  # Authenticate using the GITHUB_TOKEN
-        path: repo-java1  # Checkout code to the 'repo-java1' directory
-
-    # Step 4: Deploy the external repository (java1)
-    - name: Deploy External Repository
-      run: |
-        echo "Deploying external repository (java1) to the server..."
-        scp repo-java1/target/*.jar user@server:/path/to/deployment/directory/  # Example deployment command
+        scp target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets
