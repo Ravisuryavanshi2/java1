@@ -27,10 +27,11 @@ jobs:
     - name: Build with Maven
       run: mvn clean install
 
-    - name: Check build output (debug step)
+    # Debugging step to check if WAR file is created
+    - name: Check contents of target directory
       run: |
-        echo "Checking contents of target directory"
-        ls -al target/  # List contents of the target directory to verify the WAR file
+        echo "Listing contents of the target directory"
+        ls -al target/
 
     - name: Check WAR file existence
       run: |
