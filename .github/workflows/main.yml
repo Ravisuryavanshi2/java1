@@ -3,47 +3,100 @@ name: Java CI/CD Workflow
 on:
   push:
     branches:
-      - main
+      - master  # Trigger on pushes to the 'master' branch of the current repository
   pull_request:
     branches:
-      - main
+      - master  # Trigger on pull requests to the 'master' branch of the current repository
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    # Step 1: Checkout the current repository (main repository) from the 'master' branch
+    - name: Checkout Current Repository (master branch)
       uses: actions/checkout@v3
+      with:
+        ref: 'refs/heads/master'  # Ensure we are working with the 'master' branch
 
+    # Step 2: Set up JDK 11 (adoptopenjdk distribution)
     - name: Set up JDK 11
       uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'adoptopenjdk'
 
+    # Step 3: Build the current repository (main repository)
     - name: Build with Maven
       run: mvn clean install
 
+    # Step 4: Run Tests for the current repository
     - name: Run Tests
       run: mvn test
 
+    # Step 5: Upload Artifacts (JAR file) from the current repository
     - name: Upload Artifacts (JAR file)
       uses: actions/upload-artifact@v3
       with:
         name: my-java-artifact
         path: target/*.jar  # Adjust path if needed
 
+    # Step 6: Checkout the external repository (java1) from the 'master' branch
+    - name: Checkout External Repository (java1) from 'master' branch
+      uses: actions/checkout@v3
+      with:
+        repository: 'Ravisuryavanshi2/java1'  # External repository URL
+        ref: 'refs/heads/master'  # Checkout the 'master' branch from the external repository
+        token: ${{ secrets.GITHUB_TOKEN }}  # Authenticate using the GITHUB_TOKEN
+        path: repo-java1  # Checkout code to the 'repo-java1' directory
+
+    # Step 7: Build the external repository (java1)
+    - name: Build External Repository (java1)
+      run: |
+        cd repo-java1  # Navigate to the 'repo-java1' directory
+        mvn clean install  # Build the external repository with Maven
+
+    # Step 8: Run Tests for the external repository
+    - name: Run Tests for External Repository (java1)
+      run: |
+        cd repo-java1  # Navigate to the 'repo-java1' directory
+        mvn test  # Run tests for the external repository
+
+    # Step 9: Upload Artifacts (JAR file) from the external repository
+    - name: Upload External Repository Artifacts (JAR file)
+      uses: actions/upload-artifact@v3
+      with:
+        name: java1-artifact
+        path: repo-java1/target/*.jar  # Adjust path based on the external repository output
+
   deploy:
     runs-on: ubuntu-latest
-    needs: build  # This means deploy only runs after the build job finishes
+    needs: build  # This means deploy will only run after the build job finishes
 
     steps:
-    - name: Checkout Code
+    # Step 1: Checkout the current repository from the 'master' branch
+    - name: Checkout Current Repository (master branch)
       uses: actions/checkout@v3
+      with:
+        ref: 'refs/heads/master'  # Ensure we are working with the 'master' branch
 
-    - name: Deploy to Server (Example)
+    # Step 2: Deploy the current repository (main repo)
+    - name: Deploy Current Repository
       run: |
-        echo "Deploying project to the server..."
-        # Example command to deploy to a remote server (use your deployment steps here)
-        scp target/*.jar user@server:/path/to/deployment/directory/
+        echo "Deploying current repository to the server..."
+        scp target/*.jar user@server:/path/to/deployment/directory/  # Example deployment command
+
+    # Step 3: Checkout the external repository (java1) from the 'master' branch
+    - name: Checkout External Repository (java1) from 'master' branch
+      uses: actions/checkout@v3
+      with:
+        repository: 'Ravisuryavanshi2/java1'  # External repository URL
+        ref: 'refs/heads/master'  # Checkout the 'master' branch from the external repository
+        token: ${{ secrets.GITHUB_TOKEN }}  # Authenticate using the GITHUB_TOKEN
+        path: repo-java1  # Checkout code to the 'repo-java1' directory
+
+    # Step 4: Deploy the external repository (java1)
+    - name: Deploy External Repository
+      run: |
+        echo "Deploying external repository (java1) to the server..."
+        scp repo-java1/target/*.jar user@server:/path/to/deployment/directory/  # Example deployment command
