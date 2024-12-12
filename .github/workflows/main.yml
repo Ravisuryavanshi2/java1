@@ -30,20 +30,20 @@ jobs:
     - name: Run Tests
       run: mvn test
 
-    - name: Check if JAR file exists
+    - name: Check build output (debug step)
       run: |
-        echo "Checking for JAR file in target directory"
+        echo "Checking build output in target/ directory"
         ls -al target/
-        if [ ! -f target/*.jar ]; then
-          echo "JAR file not found in target directory. Exiting..."
+        if [ ! -f target/*.war ]; then
+          echo "WAR file not found in target directory. Exiting..."
           exit 1
         fi
 
-    - name: Upload Artifacts (JAR file)
+    - name: Upload Artifacts (WAR file)
       uses: actions/upload-artifact@v3
       with:
         name: my-java-artifact
-        path: target/*.jar
+        path: target/*.war  # Use *.war for WAR file instead of *.jar
 
   deploy:
     runs-on: ubuntu-latest
@@ -66,15 +66,34 @@ jobs:
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} 'echo SSH connection successful!' || (echo "SSH connection failed" && exit 1)
 
+    - name: Install Tomcat on EC2
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          # Install necessary dependencies
+          sudo apt update -y
+          sudo apt install -y openjdk-11-jdk wget unzip
+
+          # Download and install Tomcat
+          cd /opt
+          sudo wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.58/bin/apache-tomcat-9.0.58.tar.gz
+          sudo tar xvf apache-tomcat-9.0.58.tar.gz
+          sudo ln -s apache-tomcat-9.0.58 tomcat
+
+          # Start Tomcat
+          sudo /opt/tomcat/bin/startup.sh
+
+          # Open necessary ports (HTTP 8080)
+          sudo ufw allow 8080
+        EOF
+
     - name: Deploy to Tomcat on EC2
       run: |
         echo "Deploying current repository to the server..."
-        # Add this check to ensure the artifact exists before deploying
-        if [ ! -f target/*.jar ]; then
-          echo "JAR file not found in target directory. Exiting..."
+        if [ ! -f target/*.war ]; then
+          echo "WAR file not found in target directory. Exiting..."
           exit 1
         fi
-        scp target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/opt/tomcat/webapps/
+        scp target/*.war ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/opt/tomcat/webapps/  # Adjust for WAR file
 
     - name: Restart Tomcat on EC2
       run: |
