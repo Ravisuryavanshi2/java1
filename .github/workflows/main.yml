@@ -94,7 +94,7 @@ jobs:
     - name: Deploy Current Repository
       run: |
         echo "Deploying current repository to the server..."
-        scp target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/path/to/deployment/dir  # Adjust path if needed
+        scp target/*.jar ${{ secrets.DEPLOY_USER }}@${{ secrets.SERVER_IP }}:/opt/tomcat/webapps  # Adjust path if needed
 
     - name: Deploy External Repository Artifact (java1)
       run: |
